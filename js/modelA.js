@@ -22,13 +22,17 @@ window.Todo = Backbone.Model.extend({
 	},
 	toggle: function() {
 		this.save({done: !this.get("done")});
-	}
+	},
+	    // Remove this Todo from *localStorage* and delete its view.
+    clear: function() {
+      this.destroy();
+    }
 });
 
 window.TodoList = Backbone.Collection.extend({
 	model: Todo,
 
-	localStorage: new Store("todos"),
+	localStorage: new Store("hh"),
 
 	done: function() {
 		return this.filter(function(todo) {
@@ -53,18 +57,24 @@ window.TodoView = Backbone.View.extend({
 	events: {
 		"change .check" : "toggleDone",
 		"dblclick .todo-content" : "edit",
+		"click .todo-destroy" : "destroy",
 		"keypress .todo-input" : "updateOnEnter",
-		"blur .todo-input" : "close"
+		"blur .edit" : "close"
 	}, 
 
 	initialize: function() {
-		_.bindAll(this, 'render', 'close');
+		_.bindAll(this, 'render', 'close', 'remove');
+		
 		this.model.bind('change', this.render);
+		this.model.bind('destroy', this.remove);
 	},
 
 	render: function() {
 		var element = jQuery.tmpl(this.template, this.model.toJSON());
 		$(this.el).html(element);
+		console.log('render');
+		console.log('remaining item count : ' + Todos.length);
+		//this.$("#clear-completed").append(Todos.remaining());
 		return this;
 	},
 
@@ -73,6 +83,7 @@ window.TodoView = Backbone.View.extend({
 	},
 
 	edit: function() {
+		console.log('edit');
 		$(this.el).addClass("editing");
 		console.log(this);
 		this.$(".todo-input").focus();
@@ -88,15 +99,30 @@ window.TodoView = Backbone.View.extend({
 	updateOnEnter: function(e) {
 		console.log(e);
 		if (e.keyCode == 13) e.target.blur();
+	},
+
+	remove: function() {
+		console.log('remove');
+		$(this.el).remove();
+	},
+
+	destroy: function() {
+		console.log('destroy');
+		this.model.destroy();
 	}
 });
 
 window.AppView = Backbone.View.extend({
 	el: $("#todoapp"),
 
+   // Our template for the line of statistics at the bottom of the app.
+    statsTemplate: _.template($('#stats-template').html()),
+
 	events: {
 		"keypress #new-todo": "createOnEnter",
-		"click .todo-clear a": "clearOnCompleted"
+		"click #clear-completed": "clearOnCompleted",
+        "click #toggle-all": "toggleAllComplete"
+
 	},
 
 	initialize: function() {
@@ -104,11 +130,35 @@ window.AppView = Backbone.View.extend({
 
 		this.input = this.$("#new-todo");
 
-		Todos.bind('add', this.addOne);
-		Todos.bind('refresh', this.addAll);
+      this.allCheckbox = this.$("#toggle-all")[0];
 
+		Todos.bind('add', this.addOne);
+		Todos.bind('reset', this.addAll);
+
+        Todos.bind('all', this.render, this);
+
+      	this.footer = this.$('footer');
+      	this.main = $('#todos');
+		
 		Todos.fetch();
 	},
+
+    // Re-rendering the App just means refreshing the statistics -- the rest
+    // of the app doesn't change.
+    render: function() {
+    	console.log('render in app');
+      var done = Todos.done().length;
+      var remaining = Todos.remaining().length;
+
+        this.main.show();
+        this.footer.show();
+
+        console.log(this.footer);
+        console.log(this.statsTemplate({done: done, remaining: remaining}));
+   		this.footer.html(this.statsTemplate({done: done, remaining: remaining}));
+
+      this.allCheckbox.checked = !remaining;
+    },
 
 	addOne: function(todo) {
 		var view = new TodoView({model:todo});
@@ -128,11 +178,18 @@ window.AppView = Backbone.View.extend({
 	},
 
 	clearOnCompleted: function() {
+		console.log('claerOnCompleted')
 		_.each(Todos.done(), function(todo) {
-			alert("destroy");
+			//alert("destroy");
+			todo.destroy();
 		});
 		return false;
-	}
+	},
+
+    toggleAllComplete: function () {
+      var done = this.allCheckbox.checked;
+      Todos.each(function (todo) { todo.save({'done': done}); });
+    }	
 });
 
 window.App = new AppView;

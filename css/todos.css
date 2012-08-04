@@ -83,7 +83,7 @@ body {
 	text-decoration: line-through;
 }
 
-#todo-list .destroy {
+#todo-list .todo-destroy {
 	position: absolute;
 	right: 5px;
 	top: 20px;
@@ -91,10 +91,10 @@ body {
 	cursor: pointer;
 	width: 20px;
 	height: 20px;
-	background: url(destroy.png) no-repeat;
+	background: url(../img/destroy.png) no-repeat;
 }
 
-#todo-list li:hover .destroy {
+#todo-list li:hover .todo-destroy {
   	display: block;
 }
 
@@ -114,7 +114,7 @@ body {
 
 #todo-list li.editing .edit {
 	display: block;
-	width: 444px;
+	width: 460px;
 	padding: 13px 15px 14px 20px;
 	margin: 0;
 }
